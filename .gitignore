@@ -1,7 +1,7 @@
-/Calculator/bin/
-/Calculator/obj/
+bin/
+obj/
 /Standard Calculator/bin/
 /Standard Calculator/obj/
 
-
+/.vs/
 *.user

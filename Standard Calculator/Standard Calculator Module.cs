@@ -16,7 +16,10 @@ namespace Rod.Calculator.Standard
 
         public void OnInitialized(IContainerProvider containerProvider)
         {
-            _regionManager.RegisterViewWithRegion("ContentRegion", typeof(Standard_View));
+            IRegion region = _regionManager.Regions["ContentRegion"];
+
+            var view = containerProvider.Resolve<Standard_View>();
+            region.Add(view);
         }
 
         public void RegisterTypes(IContainerRegistry containerRegistry)

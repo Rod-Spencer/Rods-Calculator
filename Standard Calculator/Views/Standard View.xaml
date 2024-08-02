@@ -3,16 +3,72 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
-             xmlns:local="clr-namespace:Rod.Calculator.Standard.Views"
+             xmlns:prism="http://prismlibrary.com/"
+             prism:ViewModelLocator.AutoWireViewModel="True"
              mc:Ignorable="d" 
-             d:DesignHeight="450" d:DesignWidth="320">
+             d:DesignHeight="480" 
+             d:DesignWidth="320"
+             >
+    <UserControl.Resources>
+        <Style x:Key="FunctionButtonStyle" TargetType="{x:Type Button}" >
+            <Setter Property="HorizontalAlignment" Value="Stretch" />
+            <Setter Property="VerticalAlignment" Value="Stretch" />
+            <Setter Property="Margin" Value="1" />
+            <Setter Property="FontSize" Value="20" />
+            <Setter Property="Padding" Value="0,0,0,5" />
+            <Style.Resources>
+                <Style TargetType="Border">
+                    <Setter Property="CornerRadius" Value="7"/>
+                </Style>
+            </Style.Resources>
+        </Style>
+        <Style x:Key="KeyButtonStyle" TargetType="{x:Type Button}" BasedOn="{StaticResource FunctionButtonStyle}" >
+            <Setter Property="Background" Value="AliceBlue"/>
+            <Setter Property="FontWeight" Value="Bold" />
+        </Style>
+        <Style x:Key="MemoryButtonStyle" TargetType="{x:Type Button}" >
+            <Setter Property="HorizontalAlignment" Value="Stretch" />
+            <Setter Property="VerticalAlignment" Value="Stretch" />
+            <Setter Property="Margin" Value="1" />
+            <Setter Property="Padding" Value="0,0,0,5" />
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="BorderBrush" Value="Transparent" />
+            <Style.Resources>
+                <Style TargetType="Border">
+                    <Setter Property="CornerRadius" Value="7"/>
+                </Style>
+            </Style.Resources>
+        </Style>
+        <Style x:Key="EqualButtonStyle" TargetType="{x:Type Button}" >
+            <Setter Property="HorizontalAlignment" Value="Stretch" />
+            <Setter Property="VerticalAlignment" Value="Stretch" />
+            <Setter Property="VerticalContentAlignment" Value="Center" />
+            <Setter Property="Margin" Value="1" />
+            <Setter Property="Padding" Value="0,0,0,10" />
+            <Setter Property="Background" Value="RoyalBlue"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Style.Resources>
+                <Style TargetType="Border">
+                    <Setter Property="CornerRadius" Value="7"/>
+                </Style>
+            </Style.Resources>
+        </Style>
+        <Style x:Key="ButtonBorderStyle" TargetType="{x:Type Border}">
+            <Setter Property="BorderBrush" Value="Black"/>
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="5"/>
+        </Style>
+    </UserControl.Resources>
+
     <Grid>
         <Grid.RowDefinitions>
-            <RowDefinition Height="*" />
-            <RowDefinition Height="*" />
-            <RowDefinition Height="*" />
+            <RowDefinition Height=".75*" />
+            <RowDefinition Height=".5*" />
+            <RowDefinition Height="1.25*"/>
+            <RowDefinition Height=".75*" />
             <RowDefinition Height="6*" />
         </Grid.RowDefinitions>
+
 
         <Grid Grid.Row="0">
             <Grid.ColumnDefinitions>
@@ -24,18 +80,66 @@
 
             <TextBlock Grid.Column="1" Text="Standard" Margin="10,0" FontSize="20" FontWeight="Bold" HorizontalAlignment="Center" VerticalAlignment="Center" />
         </Grid>
-        
+
+        <Grid Grid.Row="1">
+            <TextBlock Text="{Binding Path=EquationString}" Foreground="LightGray" HorizontalAlignment="Right" VerticalAlignment="Stretch" FontSize="18" />
+        </Grid>
+
         <Grid Grid.Row="2">
+            <TextBlock Text="{Binding Path=ResultString}" HorizontalAlignment="Right" VerticalAlignment="Stretch" FontSize="32" />
+        </Grid>
+
+        <Grid Grid.Row="3">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="*" />
                 <ColumnDefinition Width="*" />
                 <ColumnDefinition Width="*" />
                 <ColumnDefinition Width="*" />
                 <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="*" />
             </Grid.ColumnDefinitions>
-        </Grid>
 
-        <Grid Grid.Row="3">
+            <Button Grid.Column="0" 
+                    FontSize="20" Content="MC"
+                    Command="{Binding Path=MemoryClearCommand}"
+                    Style="{StaticResource MemoryButtonStyle}"
+                    />
+
+            <Button Grid.Column="1" 
+                    FontSize="20" Content="MR"
+                    Command="{Binding Path=MemoryRecallCommand}"
+                    Style="{StaticResource MemoryButtonStyle}"
+                    />
+
+            <Button Grid.Column="2" 
+                    FontSize="20" Content="M+"
+                    CommandParameter="MemAdd"
+                    Command="{Binding Path=MemoryClickCommand}"
+                    Style="{StaticResource MemoryButtonStyle}"
+                    />
+
+            <Button Grid.Column="3" 
+                    FontSize="20" Content="M-"
+                    CommandParameter="MemSub"
+                    Command="{Binding Path=MemoryClickCommand}"
+                    Style="{StaticResource MemoryButtonStyle}"
+                    />
+
+            <Button Grid.Column="4" 
+                    FontSize="20" Content="MS"
+                    CommandParameter="MemStore"
+                    Command="{Binding Path=MemoryClickCommand}"
+                    Style="{StaticResource MemoryButtonStyle}"
+                    />
+
+            <Button Grid.Column="5" 
+                    FontSize="20" Content="Mv"
+                    Command="{Binding Path=MemoryHistoryCommand}"
+                    Style="{StaticResource MemoryButtonStyle}"
+                    />
+
+        </Grid>
+        <Grid Grid.Row="4">
             <Grid.RowDefinitions>
                 <RowDefinition Height="*" />
                 <RowDefinition Height="*" />
@@ -50,6 +154,175 @@
                 <ColumnDefinition Width="*" />
                 <ColumnDefinition Width="*" />
             </Grid.ColumnDefinitions>
+
+            <Button Grid.Row="2" Grid.Column="0" 
+                    Content="7"
+                    CommandParameter="Number7"
+                    Command="{Binding Path=ButtonClickCommand}"
+                    Style="{StaticResource KeyButtonStyle}"
+                    />
+
+            <Button Grid.Row="2" Grid.Column="1" 
+                    Content="8" 
+                    CommandParameter="Number8"
+                    Command="{Binding Path=ButtonClickCommand}"
+                    Style="{StaticResource KeyButtonStyle}"
+                    />
+
+            <Button Grid.Row="2" Grid.Column="2" 
+                    Content="9" 
+                    CommandParameter="Number9"
+                    Command="{Binding Path=ButtonClickCommand}"
+                    Style="{StaticResource KeyButtonStyle}"
+                    />
+
+            <Button Grid.Row="3" Grid.Column="0" 
+                    Content="4" 
+                    CommandParameter="Number4"
+                    Command="{Binding Path=ButtonClickCommand}"
+                    Style="{StaticResource KeyButtonStyle}"
+                    />
+
+            <Button Grid.Row="3" Grid.Column="1" 
+                    Content="5" 
+                    CommandParameter="Number5"
+                    Command="{Binding Path=ButtonClickCommand}"
+                    Style="{StaticResource KeyButtonStyle}"
+                    />
+
+            <Button Grid.Row="3" Grid.Column="2" 
+                    Content="6" 
+                    CommandParameter="Number6"
+                    Command="{Binding Path=ButtonClickCommand}"
+                    Style="{StaticResource KeyButtonStyle}"
+                    />
+
+            <Button Grid.Row="4" Grid.Column="0" 
+                    Content="1" 
+                    CommandParameter="Number1"
+                    Command="{Binding Path=ButtonClickCommand}"
+                    Style="{StaticResource KeyButtonStyle}"
+                    />
+
+            <Button Grid.Row="4" Grid.Column="1" 
+                    Content="2" 
+                    CommandParameter="Number2"
+                    Command="{Binding Path=ButtonClickCommand}"
+                    Style="{StaticResource KeyButtonStyle}"
+                    />
+
+            <Button Grid.Row="4" Grid.Column="2" 
+                    Content="3" 
+                    CommandParameter="Number3"
+                    Command="{Binding Path=ButtonClickCommand}"
+                    Style="{StaticResource KeyButtonStyle}"
+                    />
+
+            <Button Grid.Row="5" Grid.Column="1" 
+                    Content="0" 
+                    CommandParameter="Number0"
+                    Command="{Binding Path=ButtonClickCommand}"
+                    Style="{StaticResource KeyButtonStyle}"
+                    />
+
+            <Button Grid.Row="5" Grid.Column="2" 
+                    FontSize="32" Content="." 
+                    CommandParameter="Decimal"
+                    Command="{Binding Path=ButtonClickCommand}"
+                    Style="{StaticResource KeyButtonStyle}"
+                    />
+
+            <Button Grid.Row="5" Grid.Column="0" 
+                    Content="+/-" 
+                    CommandParameter="Sign"
+                    Command="{Binding Path=ButtonClickCommand}"
+                    Style="{StaticResource KeyButtonStyle}"
+                    />
+
+            <Button Grid.Row="5" Grid.Column="3" 
+                    FontSize="32" Content="=" 
+                    CommandParameter="Equal"
+                    Command="{Binding Path=ButtonClickCommand}"
+                    Style="{StaticResource EqualButtonStyle}"
+                    />
+
+            <Button Grid.Row="4" Grid.Column="3" 
+                    FontSize="32" Content="{Binding Path=PlusSign, Mode=OneWay}" 
+                    CommandParameter="MathPlus"
+                    Command="{Binding Path=ButtonClickCommand}"
+                    Style="{StaticResource FunctionButtonStyle}"
+                    />
+
+            <Button Grid.Row="3" Grid.Column="3" 
+                    FontSize="32" Content="{Binding Path=MinusSign, Mode=OneWay}" 
+                    CommandParameter="MathMinus"
+                    Command="{Binding Path=ButtonClickCommand}"
+                    Style="{StaticResource FunctionButtonStyle}"
+                    />
+
+            <Button Grid.Row="2" Grid.Column="3" 
+                    FontSize="32" Content="{Binding Path=MultiplySign, Mode=OneWay}" 
+                    CommandParameter="MathMultiply"
+                    Command="{Binding Path=ButtonClickCommand}"
+                    Style="{StaticResource FunctionButtonStyle}"
+                    />
+
+            <Button Grid.Row="1" Grid.Column="3" 
+                    FontSize="32" Content="{Binding Path=DivisionSign, Mode=OneWay}" 
+                    CommandParameter="MathDivide"
+                    Command="{Binding Path=ButtonClickCommand}"
+                    Style="{StaticResource FunctionButtonStyle}"
+                    />
+
+            <Button Grid.Row="1" Grid.Column="2" 
+                    Content="SqRt" 
+                    CommandParameter="SqRt"
+                    Command="{Binding Path=ButtonClickCommand}"
+                    Style="{StaticResource FunctionButtonStyle}"
+                    />
+
+            <Button Grid.Row="1" Grid.Column="1" 
+                    Content="Sqr" 
+                    CommandParameter="Sqr"
+                    Command="{Binding Path=ButtonClickCommand}"
+                    Style="{StaticResource FunctionButtonStyle}"
+                    />
+
+            <Button Grid.Row="1" Grid.Column="0" 
+                    Content="Inv" 
+                    CommandParameter="Invert"
+                    Command="{Binding Path=ButtonClickCommand}"
+                    Style="{StaticResource FunctionButtonStyle}"
+                    />
+
+            <Button Grid.Row="0" Grid.Column="0" 
+                    Content="%" 
+                    CommandParameter="Percent"
+                    Command="{Binding Path=ButtonClickCommand}"
+                    Style="{StaticResource FunctionButtonStyle}"
+                    />
+
+            <Button Grid.Row="0" Grid.Column="1" 
+                    Content="CE" 
+                    CommandParameter="ClearEntry"
+                    Command="{Binding Path=ButtonClickCommand}"
+                    Style="{StaticResource FunctionButtonStyle}"
+                    />
+
+            <Button Grid.Row="0" Grid.Column="2" 
+                    Content="C" 
+                    CommandParameter="Clear"
+                    Command="{Binding Path=ButtonClickCommand}"
+                    Style="{StaticResource FunctionButtonStyle}"
+                    />
+
+            <Button Grid.Row="0" Grid.Column="3" 
+                    Content="BS" 
+                    CommandParameter="BackSp"
+                    Command="{Binding Path=ButtonClickCommand}"
+                    Style="{StaticResource FunctionButtonStyle}"
+                    />
+
         </Grid>
     </Grid>
 </UserControl>
