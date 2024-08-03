@@ -206,40 +206,32 @@ namespace Rod.Calculator.Standard.ViewModels
         private string? Generate_Equation()
         {
             if ((fullEquation == null) || (fullEquation.Count == 0)) return String.Empty;
-            StringBuilder? sb = new StringBuilder();
+            StringBuilder? sb = new StringBuilder("");
             fullEquation.ForEach(e =>
             {
                 if (e.Symbol == Math_Symbols.Sqr)
                 {
-                    if (sb.Length > 0)
-                    {
-                        sb.Insert(0, "Sqr(");
-                        sb.Append(")");
-                    }
+                    sb.Insert(0, "Sqr(");
+                    if (e.Left.HasValue == true) sb.Append($"{e.Left}");
+                    sb.Append(")");
                 }
                 else if (e.Symbol == Math_Symbols.SqRt)
                 {
-                    if (sb.Length > 0)
-                    {
-                        sb.Insert(0, "SqRt(");
-                        sb.Append(")");
-                    }
+                    sb.Insert(0, "SqRt(");
+                    if (e.Left.HasValue == true) sb.Append($"{e.Left}");
+                    sb.Append(")");
                 }
                 else if (e.Symbol == Math_Symbols.Inv)
                 {
-                    if (sb.Length > 0)
-                    {
-                        sb.Insert(0, "Inv(");
-                        sb.Append(")");
-                    }
+                    sb.Insert(0, "Inv(");
+                    if (e.Left.HasValue == true) sb.Append($"{e.Left}");
+                    sb.Append(")");
                 }
                 else if (e.Symbol == Math_Symbols.Sign)
                 {
-                    if (sb.Length > 0)
-                    {
-                        sb.Insert(0, $"{(Char)e.Symbol}(");
-                        sb.Append(")");
-                    }
+                    sb.Insert(0, $"{(Char)e.Symbol}(");
+                    if (e.Left.HasValue == true) sb.Append($"{e.Left}");
+                    sb.Append(")");
                 }
                 else if (e.Left != null)
                 {
@@ -393,33 +385,72 @@ namespace Rod.Calculator.Standard.ViewModels
                 }
                 else if (s == "Percent")
                 {
+                    if (fullEquation.Count == 0)
+                    {
+                        fullEquation?.Add(new Equation(_Result, Math_Symbols.Pcnt));
+                    }
+                    else
+                    {
+                        fullEquation?.Add(new Equation(Math_Symbols.Pcnt));
+                    }
                     if (_Result.HasValue == true) _Result = (Decimal?)(((Double)_Result) / 100.0);
-                    ResultString = ResultString;
-                    fullEquation?.Add(new Equation(Math_Symbols.Pcnt));
+                    _Current = $"{_Result}";
+                    ResultString = _Current;
+                    equation = null;
+                    EquationString = Generate_Equation();
                 }
                 else if (s == "Invert")
                 {
+                    if (fullEquation.Count == 0)
+                    {
+                        fullEquation?.Add(new Equation(_Result, Math_Symbols.Inv));
+                    }
+                    else
+                    {
+                        fullEquation?.Add(new Equation(Math_Symbols.Inv));
+                    }
                     _Result = 1 / _Result;
-                    ResultString = ResultString;
-                    fullEquation?.Add(new Equation(Math_Symbols.Inv));
+                    _Current = $"{_Result}";
+                    ResultString = _Current;
+                    equation = null;
+                    EquationString = Generate_Equation();
                 }
                 else if (s == "SqRt")
                 {
                     if (_Result != null)
                     {
+                        if (fullEquation.Count == 0)
+                        {
+                            fullEquation?.Add(new Equation(_Result, Math_Symbols.SqRt));
+                        }
+                        else
+                        {
+                            fullEquation?.Add(new Equation(Math_Symbols.SqRt));
+                        }
                         _Result = (Decimal?)Math.Sqrt((Double)_Result);
                         if (_Result.HasValue == true) _Current = $"{_Result}";
                         ResultString = _Current;
-                        fullEquation?.Add(new Equation(Math_Symbols.SqRt));
+                        equation = null;
+                        EquationString = Generate_Equation();
                     }
                 }
                 else if (s == "Sqr")
                 {
                     if (_Result != null)
                     {
+                        if (fullEquation.Count == 0)
+                        {
+                            fullEquation?.Add(new Equation(_Result, Math_Symbols.Sqr));
+                        }
+                        else
+                        {
+                            fullEquation?.Add(new Equation(Math_Symbols.Sqr));
+                        }
                         _Result = _Result * _Result;
-                        ResultString = ResultString;
-                        fullEquation?.Add(new Equation(Math_Symbols.Sqr));
+                        if (_Result.HasValue == true) _Current = $"{_Result}";
+                        ResultString = _Current;
+                        equation = null;
+                        EquationString = Generate_Equation();
                     }
                 }
                 else if (s == "ClearEntry")
@@ -443,6 +474,10 @@ namespace Rod.Calculator.Standard.ViewModels
                 {
                     _Result = 0 - _Result;
                     ResultString = ResultString;
+                }
+                else if (s == "BackSp")
+                {
+                    ResultString = _ResultString.Substring(0, _ResultString.Length - 1);
                 }
             }
             catch (Exception ex)
