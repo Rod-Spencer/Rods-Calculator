@@ -4,22 +4,20 @@ namespace Rod.Calculator.Library.Classes
 {
     public class Equation
     {
-        public Equation(Math_Symbols symbols, Double? right)
+        public Equation(Math_Symbols symbols)
         {
             Symbol = symbols;
-            Right = right;
         }
 
-        public Equation(Double? left, Math_Symbols symbols, Double? right = null)
+        public Equation(Decimal? left, Math_Symbols symbols)
         {
             Left = left;
             Symbol = symbols;
-            Right = right;
         }
 
-        public Double? Left { get; set; }
+        public Decimal? Left { get; set; }
         public Math_Symbols Symbol { get; set; }
 
-        public Double? Right { get; set; }
+        public Decimal? Right { get; set; }
     }
 }

@@ -233,7 +233,7 @@
                     />
 
             <Button Grid.Row="5" Grid.Column="0" 
-                    Content="+/-" 
+                    Content="{Binding Path=SignToggle, Mode=OneWay}" 
                     CommandParameter="Sign"
                     Command="{Binding Path=ButtonClickCommand}"
                     Style="{StaticResource KeyButtonStyle}"
