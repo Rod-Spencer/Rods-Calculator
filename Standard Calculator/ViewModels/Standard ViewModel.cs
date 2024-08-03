@@ -1,10 +1,13 @@
 ﻿using Prism.Commands;
+using Prism.Events;
 using Prism.Mvvm;
 using Rod.Calculator.Library.Classes;
 using Rod.Calculator.Library.Enumerations;
+using Rod.Calculator.Library.Events;
 using System.Diagnostics;
 using System.Text;
 using System.Windows.Input;
+using System.Windows.Media;
 
 namespace Rod.Calculator.Standard.ViewModels
 {
@@ -13,12 +16,22 @@ namespace Rod.Calculator.Standard.ViewModels
         ////////////////////////////////////////////////////////////////////////////////////////////////////
         #region Constructors
 
-        public Standard_ViewModel()
+        public Standard_ViewModel(IEventAggregator eventAggregator)
         {
+            #region Event Subscriptions
+
+            eventAggregator.GetEvent<Keyboard_Released_Event>().Subscribe(Keyboard_Released_Handler, ThreadOption.BackgroundThread, true);
+
+            #endregion
+
+            #region Command Delegates
+
             ButtonClickCommand = new DelegateCommand<Object>(CommandButtonClick);
             MemoryClickCommand = new DelegateCommand<Object>(CommandMemoryClick);
             MemoryRecallCommand = new DelegateCommand(CommandMemoryRecall, CanCommandMemoryRecall);
             MemoryClearCommand = new DelegateCommand(CommandMemoryClear, CanCommandMemoryClear);
+
+            #endregion
         }
 
         #endregion
@@ -64,21 +77,9 @@ namespace Rod.Calculator.Standard.ViewModels
         ////////////////////////////////////////////////////////////////////////////////////////////////////
         #region Public Properties
 
-        //#region ResultString
-
-
-        ///// <summary>Property ResultString of type String?</summary>
-        //public String? ResultString
-        //{
-        //    get => $"{_Result}";
-        //    set
-        //    {
-        //        Decimal d = 0;
-        //        Decimal.TryParse((String?)value, out d);
-        //        SetProperty<Decimal?>(ref _Result, d);
-        //    }
-        //}
-        //#endregion
+        ////////////////////////////////////////////////////////////////////
+        // The following block of code are the binding for the XAML view
+        ////////////////////////////////////////////////////////////////////
 
         #region ResultString
 
@@ -119,7 +120,6 @@ namespace Rod.Calculator.Standard.ViewModels
             }
         }
         #endregion
-
 
         #region EquationString
 
@@ -178,6 +178,19 @@ namespace Rod.Calculator.Standard.ViewModels
         }
         #endregion
 
+        #region EquationForeground
+
+        private Brush _EquationForeground = Brushes.LightGray;
+
+        /// <summary>Property EquationForeground of type Brush</summary>
+        public Brush EquationForeground
+        {
+            get => _EquationForeground;
+            set => SetProperty<Brush>(ref _EquationForeground, value);
+        }
+        #endregion
+
+
         #endregion
         ////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -203,7 +216,9 @@ namespace Rod.Calculator.Standard.ViewModels
         ////////////////////////////////////////////////////////////////////////////////////////////////////
         #region Private Methods
 
-        private string? Generate_Equation()
+        /// <summary>Method to generate a string representation of the full equation</summary>
+        /// <returns>String? - string representation of the full equation</returns>
+        private String? Generate_Equation()
         {
             if ((fullEquation == null) || (fullEquation.Count == 0)) return String.Empty;
             StringBuilder? sb = new StringBuilder("");
@@ -247,11 +262,13 @@ namespace Rod.Calculator.Standard.ViewModels
             return sb.ToString();
         }
 
-
+        /// <summary>Method to calculate the full equation</summary>
+        /// <returns>Decimal? - calculated equation</returns>
+        /// <exception cref="DivideByZeroException"></exception>
         private Decimal? Equate_Equation()
         {
             Decimal? result = 0;
-            if (fullEquation != null)
+            if (fullEquation?.Count > 0)
             {
                 foreach (var e in fullEquation)
                 {
@@ -283,6 +300,23 @@ namespace Rod.Calculator.Standard.ViewModels
                             {
                                 throw new DivideByZeroException();
                             }
+                        }
+                        else if (e.Symbol == Math_Symbols.SqRt)
+                        {
+                            result = (Decimal)Math.Sqrt((Double)e.Left);
+                        }
+                        else if (e.Symbol == Math_Symbols.Sqr)
+                        {
+                            result = e.Left * e.Left;
+                        }
+                        else if (e.Symbol == Math_Symbols.Inv)
+                        {
+                            if (e.Left == 0) throw new DivideByZeroException();
+                            result = 1 / e.Left;
+                        }
+                        else if (e.Symbol == Math_Symbols.Pcnt)
+                        {
+                            result = e.Left / 100;
                         }
                     }
                     else
@@ -330,17 +364,24 @@ namespace Rod.Calculator.Standard.ViewModels
         /// <summary>Delegate Command: ButtonClickCommand</summary>
         public ICommand ButtonClickCommand { get; set; }
 
+        /// <summary>Main handler for Button clicks and key presses</summary>
+        /// <param name="sender"></param>
+        /// <exception cref="DivideByZeroException"></exception>
         private void CommandButtonClick(Object sender)
         {
             try
             {
                 String s = (String)sender;
                 if (s == null) { return; }
+
+                // Checks if number has been entered
                 if (s.StartsWith("Number") == true)
                 {
                     _Current += s.Replace("Number", "");
                     ResultString = _Current;
                 }
+
+                // Checks if the period/decimal has been entered
                 else if (s == "Decimal")
                 {
                     if (_Current.Contains(".") == false)
@@ -348,10 +389,16 @@ namespace Rod.Calculator.Standard.ViewModels
                         _Current += ".";
                     }
                 }
+
+                // Checks if the equal has been entered
                 else if (s == "Equal")
                 {
                     if (equation != null)
                     {
+                        if ((equation.Symbol == Math_Symbols.Divide) && (_Result == 0))
+                        {
+                            throw new DivideByZeroException();
+                        }
                         equation.Right = _Result;
                         _Result = Equate_Equation();
                         ResultString = ResultString;
@@ -359,6 +406,8 @@ namespace Rod.Calculator.Standard.ViewModels
                         equation = null;
                     }
                 }
+
+                // Checks if the math button/key has been entered
                 else if (s.StartsWith("Math") == true)
                 {
                     if (Enum.TryParse<Math_Symbols>(s.Substring(4), out mathSymbol) == true)
@@ -368,7 +417,7 @@ namespace Rod.Calculator.Standard.ViewModels
                             equation.Right = _Result;
                             equation = new Equation(mathSymbol);
                         }
-                        else if (fullEquation.Count == 0)
+                        else if (fullEquation?.Count == 0)
                         {
                             equation = new Equation(_Result, mathSymbol);
                         }
@@ -383,9 +432,11 @@ namespace Rod.Calculator.Standard.ViewModels
                         EquationString = Generate_Equation();
                     }
                 }
+
+                // Checks if the percent button/key has been entered
                 else if (s == "Percent")
                 {
-                    if (fullEquation.Count == 0)
+                    if (fullEquation?.Count == 0)
                     {
                         fullEquation?.Add(new Equation(_Result, Math_Symbols.Pcnt));
                     }
@@ -399,9 +450,11 @@ namespace Rod.Calculator.Standard.ViewModels
                     equation = null;
                     EquationString = Generate_Equation();
                 }
+
+                // Checks if the invert button has been entered
                 else if (s == "Invert")
                 {
-                    if (fullEquation.Count == 0)
+                    if (fullEquation?.Count == 0)
                     {
                         fullEquation?.Add(new Equation(_Result, Math_Symbols.Inv));
                     }
@@ -415,11 +468,13 @@ namespace Rod.Calculator.Standard.ViewModels
                     equation = null;
                     EquationString = Generate_Equation();
                 }
+
+                // Checks if the Square Root button has been entered
                 else if (s == "SqRt")
                 {
                     if (_Result != null)
                     {
-                        if (fullEquation.Count == 0)
+                        if (fullEquation?.Count == 0)
                         {
                             fullEquation?.Add(new Equation(_Result, Math_Symbols.SqRt));
                         }
@@ -434,11 +489,13 @@ namespace Rod.Calculator.Standard.ViewModels
                         EquationString = Generate_Equation();
                     }
                 }
+
+                // Checks if the Square button has been entered
                 else if (s == "Sqr")
                 {
                     if (_Result != null)
                     {
-                        if (fullEquation.Count == 0)
+                        if (fullEquation?.Count == 0)
                         {
                             fullEquation?.Add(new Equation(_Result, Math_Symbols.Sqr));
                         }
@@ -453,6 +510,8 @@ namespace Rod.Calculator.Standard.ViewModels
                         EquationString = Generate_Equation();
                     }
                 }
+
+                // Checks if the ClearEntry (CE) button has been entered
                 else if (s == "ClearEntry")
                 {
                     _Result = 0;
@@ -460,6 +519,8 @@ namespace Rod.Calculator.Standard.ViewModels
                     _ResultString = String.Empty;
                     ResultString = ResultString;
                 }
+
+                // Checks if the Clear (C) button has been entered
                 else if (s == "Clear")
                 {
                     _Result = 0;
@@ -469,20 +530,30 @@ namespace Rod.Calculator.Standard.ViewModels
                     fullEquation?.Clear();
                     equation = null;
                     EquationString = String.Empty;
+                    EquationForeground = Brushes.LightGray;
                 }
+
+                // Checks if the Change Sign button has been entered
                 else if (s == "Sign")
                 {
                     _Result = 0 - _Result;
-                    ResultString = ResultString;
+                    if (String.IsNullOrEmpty(ResultString) == false) _Current = (String)ResultString;
+                    else _Current = String.Empty;
+                    ResultString = _Current;
                 }
+
+                // Checks if the BackSpace button/key has been entered
                 else if (s == "BackSp")
                 {
-                    ResultString = _ResultString.Substring(0, _ResultString.Length - 1);
+                    _Current = _Current.Substring(0, _Current.Length - 1);
+                    ResultString = _Current;
                 }
             }
             catch (Exception ex)
             {
                 Debug.WriteLine(ex.Message);
+                EquationForeground = Brushes.Red;
+                EquationString = ex.Message;
             }
         }
 
@@ -595,6 +666,21 @@ namespace Rod.Calculator.Standard.ViewModels
 
         ////////////////////////////////////////////////////////////////////////////////////////////////////
         #region Event Handlers
+
+
+        ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+        #region Keyboard_Released_Handler  -- Event: Keyboard_Released_Event Handler
+        ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+        private void Keyboard_Released_Handler(String obj)
+        {
+            CommandButtonClick(obj);
+        }
+
+        ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+        #endregion
+        ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
         #endregion
         ////////////////////////////////////////////////////////////////////////////////////////////////////
     }

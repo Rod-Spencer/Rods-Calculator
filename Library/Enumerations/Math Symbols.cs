@@ -11,8 +11,12 @@
         Pcnt = 0x25,
         Sign = 0xB1,
 
+        ////////////////////////////////////////////////////////////////////
+        // These keys do not have ascii symbols, so unused codes are used for values
         SqRt = 0x8D,
-        Sqr=0x8F,
-        Inv=0x81,
+        Sqr = 0x8F,
+        Inv = 0x81,
+        //
+        ////////////////////////////////////////////////////////////////////
     }
 }

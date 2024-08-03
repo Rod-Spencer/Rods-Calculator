@@ -6,7 +6,10 @@
         Title="{Binding Title}" 
         Height="450" 
         Width="320"
-    >
+        KeyUp="Keyboard_KeyUp"
+        KeyDown="Keyboard_KeyDn"
+        >
+    
     <Grid>
         <ContentControl prism:RegionManager.RegionName="ContentRegion" />
     </Grid>

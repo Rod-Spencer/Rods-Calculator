@@ -4,16 +4,21 @@ namespace Rod.Calculator.ViewModels
 {
     public class MainWindowViewModel : BindableBase
     {
+        ////////////////////////////////////////////////////////////////////////////////////////////////////
+        #region Title
+
         private string _title = "Calculator";
         public string Title
         {
-            get { return _title; }
-            set { SetProperty(ref _title, value); }
+            get => _title;
+            set => SetProperty(ref _title, value);
         }
+
+        #endregion Title
+        ////////////////////////////////////////////////////////////////////////////////////////////////////
 
         public MainWindowViewModel()
         {
-
         }
     }
 }

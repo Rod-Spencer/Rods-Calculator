@@ -82,7 +82,7 @@
         </Grid>
 
         <Grid Grid.Row="1">
-            <TextBlock Text="{Binding Path=EquationString}" Foreground="LightGray" HorizontalAlignment="Right" VerticalAlignment="Stretch" FontSize="18" />
+            <TextBlock Text="{Binding Path=EquationString}" Foreground="{Binding Path=EquationForeground}" HorizontalAlignment="Right" VerticalAlignment="Stretch" FontSize="18" />
         </Grid>
 
         <Grid Grid.Row="2">
