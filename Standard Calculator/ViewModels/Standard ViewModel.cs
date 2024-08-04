@@ -70,6 +70,16 @@ namespace Rod.Calculator.Standard.ViewModels
             set { _fullEquation = value; }
         }
 
+        private List<String> _AllActions;
+
+        private List<String> AllEntries
+        {
+            get
+            {
+                if (_AllActions == null) _AllActions = new List<String>();
+                return _AllActions;
+            }
+        }
         #endregion
         ////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -216,140 +226,247 @@ namespace Rod.Calculator.Standard.ViewModels
         ////////////////////////////////////////////////////////////////////////////////////////////////////
         #region Private Methods
 
-        /// <summary>Method to generate a string representation of the full equation</summary>
-        /// <returns>String? - string representation of the full equation</returns>
-        private String? Generate_Equation()
+        /// <summary>Method to go through the entries list to generate the result</summary>
+        /// <returns>Decimal - result</returns>
+        /// <exception cref="Exception"></exception>
+        private Decimal Calculate_Result()
         {
-            if ((fullEquation == null) || (fullEquation.Count == 0)) return String.Empty;
-            StringBuilder? sb = new StringBuilder("");
-            fullEquation.ForEach(e =>
-            {
-                if (e.Symbol == Math_Symbols.Sqr)
-                {
-                    sb.Insert(0, "Sqr(");
-                    if (e.Left.HasValue == true) sb.Append($"{e.Left}");
-                    sb.Append(")");
-                }
-                else if (e.Symbol == Math_Symbols.SqRt)
-                {
-                    sb.Insert(0, "SqRt(");
-                    if (e.Left.HasValue == true) sb.Append($"{e.Left}");
-                    sb.Append(")");
-                }
-                else if (e.Symbol == Math_Symbols.Inv)
-                {
-                    sb.Insert(0, "Inv(");
-                    if (e.Left.HasValue == true) sb.Append($"{e.Left}");
-                    sb.Append(")");
-                }
-                else if (e.Symbol == Math_Symbols.Sign)
-                {
-                    sb.Insert(0, $"{(Char)e.Symbol}(");
-                    if (e.Left.HasValue == true) sb.Append($"{e.Left}");
-                    sb.Append(")");
-                }
-                else if (e.Left != null)
-                {
-                    sb.Append($"{e.Left} {(Char)e.Symbol} {e.Right}");
-                }
-                else if (sb != null)
-                {
-                    sb.Insert(0, "(");
-                    sb.Append($") {(Char)e.Symbol}");
-                    if (e.Right.HasValue == true) sb.Append($" {e.Right}");
-                }
-            });
-            return sb.ToString();
-        }
+            Decimal result = 0;
+            String number = String.Empty;
+            Math_Symbols symbol = Math_Symbols.None;
 
-        /// <summary>Method to calculate the full equation</summary>
-        /// <returns>Decimal? - calculated equation</returns>
-        /// <exception cref="DivideByZeroException"></exception>
-        private Decimal? Equate_Equation()
-        {
-            Decimal? result = 0;
-            if (fullEquation?.Count > 0)
+            // Iterate through the entries list
+            foreach (var act in AllEntries)
             {
-                foreach (var e in fullEquation)
+                if (act.StartsWith("Number", StringComparison.OrdinalIgnoreCase) == true)
                 {
-                    Decimal? right = e.Right;
-
-                    if (e.Left != null)
+                    number += act.Replace("Number", "");
+                }
+                else if (act.StartsWith("MR:") == true)
+                {
+                    number = act.Substring(3);
+                }
+                else if (String.Compare(act, "Decimal", true) == 0)
+                {
+                    if (number.Contains('.') == false)
                     {
-                        Decimal? left = e.Left;
-
-                        if (e.Symbol == Math_Symbols.Minus)
+                        number += ".";
+                    }
+                }
+                else if (String.Compare(act, "BackSp", true) == 0)
+                {
+                    if (number.Length > 0)
+                    {
+                        number = number.Substring(0, number.Length - 1);
+                    }
+                }
+                else if (String.Compare(act, "Sign", true) == 0)
+                {
+                    if (number.Length > 0)
+                    {
+                        if (Decimal.TryParse(number, out Decimal d) == true)
                         {
-                            result = e.Left - e.Right;
+                            d = 0 - d;
+                            number = $"{d}";
                         }
-                        else if (e.Symbol == Math_Symbols.Plus)
+                    }
+                    else if (result != 0)
+                    {
+                        result = 0 - result;
+                    }
+                }
+                else if (act.StartsWith("Math", StringComparison.OrdinalIgnoreCase) == true)
+                {
+                    if ((String.IsNullOrEmpty(number) == false) && (number.Length > 0))
+                    {
+                        if (symbol == Math_Symbols.Plus)
                         {
-                            result = e.Left + e.Right;
+                            result += Decimal.Parse(number);
                         }
-                        else if (e.Symbol == Math_Symbols.Multiply)
+                        else if (symbol == Math_Symbols.Minus)
                         {
-                            result = e.Left * e.Right;
+                            result -= Decimal.Parse(number);
                         }
-                        else if (e.Symbol == Math_Symbols.Divide)
+                        else if (symbol == Math_Symbols.Multiply)
                         {
-                            if ((e.Right != null) && (e.Right != 0))
-                            {
-                                result = e.Left / e.Right;
-                            }
-                            else
-                            {
-                                throw new DivideByZeroException();
-                            }
+                            result *= Decimal.Parse(number);
                         }
-                        else if (e.Symbol == Math_Symbols.SqRt)
+                        else if (symbol == Math_Symbols.Divide)
                         {
-                            result = (Decimal)Math.Sqrt((Double)e.Left);
+                            result /= Decimal.Parse(number);
                         }
-                        else if (e.Symbol == Math_Symbols.Sqr)
+                        else if (symbol == Math_Symbols.None)
                         {
-                            result = e.Left * e.Left;
+                            result = Decimal.Parse(number);
                         }
-                        else if (e.Symbol == Math_Symbols.Inv)
+                    }
+                    symbol = Enum.Parse<Math_Symbols>(act.Substring(4));
+                    EquationString = Calculate_Equation();
+                    number = String.Empty;
+                }
+                else if (String.Compare(act, "Equal", true) == 0)
+                {
+                    if ((String.IsNullOrEmpty(number) == false) && (number.Length > 0))
+                    {
+                        if (symbol == Math_Symbols.Plus)
                         {
-                            if (e.Left == 0) throw new DivideByZeroException();
-                            result = 1 / e.Left;
+                            result += Decimal.Parse(number);
                         }
-                        else if (e.Symbol == Math_Symbols.Pcnt)
+                        else if (symbol == Math_Symbols.Minus)
                         {
-                            result = e.Left / 100;
+                            result -= Decimal.Parse(number);
                         }
+                        else if (symbol == Math_Symbols.Multiply)
+                        {
+                            result *= Decimal.Parse(number);
+                        }
+                        else if (symbol == Math_Symbols.Divide)
+                        {
+                            result /= Decimal.Parse(number);
+                        }
+                    }
+                    symbol = Math_Symbols.None;
+                    EquationString = Calculate_Equation();
+                    number = String.Empty;
+                }
+                else if (act.StartsWith("Invert", StringComparison.OrdinalIgnoreCase) == true)
+                {
+                    if ((String.IsNullOrEmpty(number) == false) && (number.Length > 0))
+                    {
+                        if (Decimal.TryParse(number, out Decimal d) == false)
+                        {
+                            throw new Exception($"Unable to parse: {number}");
+                        }
+                        d = 1 / d;
+                        number = $"{d}";
                     }
                     else
                     {
-                        if (e.Symbol == Math_Symbols.Minus)
-                        {
-                            result -= e.Right;
-                        }
-                        else if (e.Symbol == Math_Symbols.Plus)
-                        {
-                            result += e.Right;
-                        }
-                        else if (e.Symbol == Math_Symbols.Multiply)
-                        {
-                            result *= e.Right;
-                        }
-                        else if (e.Symbol == Math_Symbols.Divide)
-                        {
-                            if ((e.Right != null) && (e.Right != 0))
-                            {
-                                result /= e.Right;
-                            }
-                            else
-                            {
-                                throw new DivideByZeroException();
-                            }
-                        }
+                        result = 1 / result;
+                        number = String.Empty;
                     }
+                    symbol = Math_Symbols.None;
+                    EquationString = Calculate_Equation();
+                }
+                else if (act.StartsWith("Percent", StringComparison.OrdinalIgnoreCase) == true)
+                {
+                    if ((String.IsNullOrEmpty(number) == false) && (number.Length > 0))
+                    {
+                        if (Decimal.TryParse(number, out Decimal d) == false)
+                        {
+                            throw new Exception($"Unable to parse: {number}");
+                        }
+                        d /= 100;
+                        number = $"{d}";
+                    }
+                    else
+                    {
+                        result /= 100;
+                        number = String.Empty;
+                    }
+                    symbol = Math_Symbols.None;
+                    EquationString = Calculate_Equation();
+                }
+                else if (act.StartsWith("SqRt", StringComparison.OrdinalIgnoreCase) == true)
+                {
+                    if ((String.IsNullOrEmpty(number) == false) && (number.Length > 0))
+                    {
+                        if (Decimal.TryParse(number, out Decimal d) == false)
+                        {
+                            throw new Exception($"Unable to parse: {number}");
+                        }
+                        d = (Decimal)Math.Sqrt((Double)d);
+                        number = $"{d}";
+                    }
+                    else
+                    {
+                        result = (Decimal)Math.Sqrt((Double)result);
+                        number = String.Empty;
+                    }
+                    symbol = Math_Symbols.None;
+                    EquationString = Calculate_Equation();
+                }
+                else if (act.StartsWith("Sqr", StringComparison.OrdinalIgnoreCase) == true)
+                {
+                    if ((String.IsNullOrEmpty(number) == false) && (number.Length > 0))
+                    {
+                        if (Decimal.TryParse(number, out Decimal d) == false)
+                        {
+                            throw new Exception($"Unable to parse: {number}");
+                        }
+                        d = (Decimal)Math.Pow((Double)d, 2);
+                        number = $"{d}";
+                    }
+                    else
+                    {
+                        result = (Decimal)Math.Pow((Double)result, 2);
+                        number = String.Empty;
+                    }
+                    symbol = Math_Symbols.None;
+                    EquationString = Calculate_Equation();
                 }
             }
+            if (String.IsNullOrEmpty(number) == false) return Decimal.Parse(number);
             return result;
         }
 
+        /// <summary>Method to iterate through the action list to generate a string representation</summary>
+        /// <returns>String? - string representation </returns>
+        private String Calculate_Equation()
+        {
+            StringBuilder result = new StringBuilder();
+
+            // Iterate through the entries list
+            foreach (var act in AllEntries)
+            {
+                if (act.StartsWith("Number", StringComparison.OrdinalIgnoreCase) == true)
+                {
+                    result.Append(act.Replace("Number", ""));
+                }
+                else if (act.StartsWith("MR:", StringComparison.OrdinalIgnoreCase) == true)
+                {
+                    result.Append(act.Substring(3));
+                }
+                else if (String.Compare(act, "Decimal", true) == 0)
+                {
+                    result.Append(".");
+                }
+                else if (act.StartsWith("Math", StringComparison.OrdinalIgnoreCase) == true)
+                {
+                    if (Enum.TryParse<Math_Symbols>(act.Substring(4), out Math_Symbols mathSymbol) == true)
+                    {
+                        result.Insert(0, $"(");
+                        result.Append($"){(Char)mathSymbol}");
+                    }
+                }
+
+                else if (String.Compare(act, "SqRt", true) == 0)
+                {
+                    result.Insert(0, $"{act}(");
+                    result.Append(")");
+                }
+                else if (String.Compare(act, "Invert", true) == 0)
+                {
+                    result.Insert(0, $"Inv(");
+                    result.Append(")");
+                }
+                else if (String.Compare(act, "Sqr", true) == 0)
+                {
+                    result.Insert(0, $"{act}(");
+                    result.Append(")");
+                }
+                else if (String.Compare(act, "Percent", true) == 0)
+                {
+                    result.Append("%");
+                }
+                else if (String.Compare(act, "Sign", true) == 0)
+                {
+                    result.Insert(0, "-(");
+                    result.Append(")");
+                }
+            }
+            return result.ToString();
+        }
 
         #endregion
         ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -372,182 +489,31 @@ namespace Rod.Calculator.Standard.ViewModels
             try
             {
                 String s = (String)sender;
-                if (s == null) { return; }
-
-                // Checks if number has been entered
-                if (s.StartsWith("Number") == true)
+                if (String.IsNullOrEmpty(s) == true)
                 {
-                    _Current += s.Replace("Number", "");
-                    ResultString = _Current;
+                    return;
                 }
-
-                // Checks if the period/decimal has been entered
-                else if (s == "Decimal")
-                {
-                    if (_Current.Contains(".") == false)
-                    {
-                        _Current += ".";
-                    }
-                }
-
-                // Checks if the equal has been entered
-                else if (s == "Equal")
-                {
-                    if (equation != null)
-                    {
-                        if ((equation.Symbol == Math_Symbols.Divide) && (_Result == 0))
-                        {
-                            throw new DivideByZeroException();
-                        }
-                        equation.Right = _Result;
-                        _Result = Equate_Equation();
-                        ResultString = ResultString;
-                        EquationString = Generate_Equation();
-                        equation = null;
-                    }
-                }
-
-                // Checks if the math button/key has been entered
-                else if (s.StartsWith("Math") == true)
-                {
-                    if (Enum.TryParse<Math_Symbols>(s.Substring(4), out mathSymbol) == true)
-                    {
-                        if (equation != null)
-                        {
-                            equation.Right = _Result;
-                            equation = new Equation(mathSymbol);
-                        }
-                        else if (fullEquation?.Count == 0)
-                        {
-                            equation = new Equation(_Result, mathSymbol);
-                        }
-                        else
-                        {
-                            equation = new Equation(mathSymbol);
-                        }
-                        fullEquation?.Add(equation);
-
-                        _Result = 0;
-                        _Current = String.Empty;
-                        EquationString = Generate_Equation();
-                    }
-                }
-
-                // Checks if the percent button/key has been entered
-                else if (s == "Percent")
-                {
-                    if (fullEquation?.Count == 0)
-                    {
-                        fullEquation?.Add(new Equation(_Result, Math_Symbols.Pcnt));
-                    }
-                    else
-                    {
-                        fullEquation?.Add(new Equation(Math_Symbols.Pcnt));
-                    }
-                    if (_Result.HasValue == true) _Result = (Decimal?)(((Double)_Result) / 100.0);
-                    _Current = $"{_Result}";
-                    ResultString = _Current;
-                    equation = null;
-                    EquationString = Generate_Equation();
-                }
-
-                // Checks if the invert button has been entered
-                else if (s == "Invert")
-                {
-                    if (fullEquation?.Count == 0)
-                    {
-                        fullEquation?.Add(new Equation(_Result, Math_Symbols.Inv));
-                    }
-                    else
-                    {
-                        fullEquation?.Add(new Equation(Math_Symbols.Inv));
-                    }
-                    _Result = 1 / _Result;
-                    _Current = $"{_Result}";
-                    ResultString = _Current;
-                    equation = null;
-                    EquationString = Generate_Equation();
-                }
-
-                // Checks if the Square Root button has been entered
-                else if (s == "SqRt")
-                {
-                    if (_Result != null)
-                    {
-                        if (fullEquation?.Count == 0)
-                        {
-                            fullEquation?.Add(new Equation(_Result, Math_Symbols.SqRt));
-                        }
-                        else
-                        {
-                            fullEquation?.Add(new Equation(Math_Symbols.SqRt));
-                        }
-                        _Result = (Decimal?)Math.Sqrt((Double)_Result);
-                        if (_Result.HasValue == true) _Current = $"{_Result}";
-                        ResultString = _Current;
-                        equation = null;
-                        EquationString = Generate_Equation();
-                    }
-                }
-
-                // Checks if the Square button has been entered
-                else if (s == "Sqr")
-                {
-                    if (_Result != null)
-                    {
-                        if (fullEquation?.Count == 0)
-                        {
-                            fullEquation?.Add(new Equation(_Result, Math_Symbols.Sqr));
-                        }
-                        else
-                        {
-                            fullEquation?.Add(new Equation(Math_Symbols.Sqr));
-                        }
-                        _Result = _Result * _Result;
-                        if (_Result.HasValue == true) _Current = $"{_Result}";
-                        ResultString = _Current;
-                        equation = null;
-                        EquationString = Generate_Equation();
-                    }
-                }
-
-                // Checks if the ClearEntry (CE) button has been entered
                 else if (s == "ClearEntry")
                 {
                     _Result = 0;
-                    _Current = String.Empty;
-                    _ResultString = String.Empty;
-                    ResultString = ResultString;
+                    ResultString = String.Empty;
+                    return;
                 }
 
                 // Checks if the Clear (C) button has been entered
                 else if (s == "Clear")
                 {
                     _Result = 0;
-                    _Current = String.Empty;
-                    _ResultString = String.Empty;
-                    ResultString = ResultString;
-                    fullEquation?.Clear();
-                    equation = null;
+                    ResultString = String.Empty;
+                    AllEntries.Clear();
                     EquationString = String.Empty;
                     EquationForeground = Brushes.LightGray;
+                    return;
                 }
+                AllEntries.Add(s);
 
-                // Checks if the Change Sign button has been entered
-                else if (s == "Sign")
-                {
-                    _Result = 0 - _Result;
-                    if (String.IsNullOrEmpty(ResultString) == false) _Current = (String)ResultString;
-                    else _Current = String.Empty;
-                    ResultString = _Current;
-                }
 
-                // Checks if the BackSpace button/key has been entered
-                else if (s == "BackSp")
-                {
-                    _Current = _Current.Substring(0, _Current.Length - 1);
-                    ResultString = _Current;
-                }
+                ResultString = $"{Calculate_Result()}";
             }
             catch (Exception ex)
             {
@@ -618,8 +584,9 @@ namespace Rod.Calculator.Standard.ViewModels
         {
             try
             {
-                _Result = MemoryStore;
-                ResultString = ResultString;
+                AllEntries.Add($"MR:{MemoryStore}");
+
+                ResultString = $"{Calculate_Result()}";
             }
             catch (Exception ex)
             {
@@ -668,18 +635,18 @@ namespace Rod.Calculator.Standard.ViewModels
         #region Event Handlers
 
 
-        ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+        ////////////////////////////////////////////////////////////////////////////////////////////////////
         #region Keyboard_Released_Handler  -- Event: Keyboard_Released_Event Handler
-        ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+        ////////////////////////////////////////////////////////////////////////////////////////////////////
 
         private void Keyboard_Released_Handler(String obj)
         {
             CommandButtonClick(obj);
         }
 
-        ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+        ////////////////////////////////////////////////////////////////////////////////////////////////////
         #endregion
-        ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+        ////////////////////////////////////////////////////////////////////////////////////////////////////
 
         #endregion
         ////////////////////////////////////////////////////////////////////////////////////////////////////
